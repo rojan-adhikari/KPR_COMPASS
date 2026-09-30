@@ -1,0 +1,7 @@
+const CACHE='compass-shell-v5';const DATA='compass-data-v5';
+self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.add('/')).then(()=>self.skipWaiting()).catch(()=>{}))});
+self.addEventListener('activate',event=>{event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>(k.startsWith('mentee-')||k.startsWith('compass-'))&&!['compass-shell-v5','compass-data-v5'].includes(k)).map(k=>caches.delete(k)))),self.clients.claim()]))});
+self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'||new URL(req.url).origin!==location.origin)return;const path=new URL(req.url).pathname;if(path.startsWith('/signin-with-chatgpt')||path.startsWith('/signout-with-chatgpt')||path.startsWith('/callback')||path==='/api/staff'||path.startsWith('/api/id-checkins')||path.startsWith('/api/participations')||path.startsWith('/api/event-poster'))return;
+ if(new URL(req.url).pathname==='/api/campus'){event.respondWith(fetch(req).then(res=>{if(res.ok){const copy=res.clone();caches.open(DATA).then(c=>c.put(req,copy))}return res}).catch(()=>caches.match(req).then(r=>r||new Response(JSON.stringify({error:'Offline map not cached'}),{status:503,headers:{'Content-Type':'application/json'}}))));return}
+ if(req.mode==='navigate'||['script','style','image','font'].includes(req.destination)){event.respondWith(fetch(req).then(res=>{if(res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy))}return res}).catch(()=>caches.match(req).then(r=>r||caches.match('/'))))}
+});
